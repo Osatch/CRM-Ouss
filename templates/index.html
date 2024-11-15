@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM - Liste des Contacts</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .btn-status { margin-left: 5px; }
+        /* Mise en page avec flexbox pour aligner le select et le statut sur la même ligne */
+        .statut-container {
+            display: flex;
+            align-items: center;
+        }
+        .statut-rectangle {
+            padding: 5px 10px;
+            border-radius: 12px;
+            color: white;
+            font-weight: bold;
+            margin-left: 10px; /* Un peu d'espace entre le select et le statut */
+        }
+        /* Couleurs des statuts */
+        .statut-vente { background-color: green; }
+        .statut-rappel { background-color: blue; }
+        .statut-ne_repond_pas { background-color: orange; }
+        .statut-Ne_Pas_Rap { background-color: red; }
+        .statut-mauvais_numero { background-color: yellow; color: black; }
+
+        /* Transformation de la liste déroulante en petite flèche */
+        .select-small {
+            width: 20px;
+            height: 20px;
+            padding: 0;
+            background: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zY2h...') no-repeat center center;
+            background-size: contain;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+<div class="container mt-4">
+    <h2>Liste des Contacts</h2>
+
+    <!-- Formulaire pour uploader un nouveau fichier Excel -->
+    <form action="/" method="post" enctype="multipart/form-data" class="mb-3">
+        <input type="file" name="file" accept=".xlsx, .xls" class="form-control-file">
+        <button type="submit" class="btn btn-primary mt-2">Charger le fichier</button>
+    </form>
+    
+    <!-- Table pour afficher les contacts -->
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Nom</th>
+                <th>Profession</th>
+                <th>Téléphone</th>
+                <th>Statut</th>
+                <th>Heure du clic</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for contact in contacts %}
+            <tr>
+                <td>{{ loop.index }}</td> <!-- Numéro d'ordre -->
+                <td>{{ contact['Nom'] }}</td>
+                <td>{{ contact['Profession'] }}</td>
+                <td>
+                    <a href="#" class="telephone" data-numero="{{ contact['Téléphone'] }}">{{ contact['Téléphone'] }}</a>
+                </td>
+                <td>
+                    <!-- Conteneur pour select et statut -->
+                    <div class="statut-container">
+                        <select class="form-control form-control-sm" onchange="mettreAJourStatut(this, {{ loop.index }})">
+                            <option value="">Sélectionner un statut</option>
+                            <option value="vente">Vente</option>
+                            <option value="rappel">Rappel</option>
+                            <option value="ne_repond_pas">Ne répond pas</option>
+                            <option value="Ne_Pas_Rap">Ne veut plus être rappelé</option>
+                            <option value="mauvais_numero">Mauvais numéro</option>
+                        </select>
+                        <span id="statut_{{ loop.index }}"></span> <!-- Affichage du statut -->
+                    </div>
+                </td>
+                <td id="heure_{{ loop.index }}"></td> <!-- Colonne pour afficher la date et l'heure -->
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script>
+    // Fonction pour copier le numéro de téléphone et l'envoyer à Aircall
+    function copierNumeroSurAircall(numero, index) {
+        // Copier le numéro dans le presse-papiers
+        navigator.clipboard.writeText(numero).then(function() {
+            console.log("Numéro copié :", numero);
+            // Appeler l'API ou ouvrir Aircall (exemple avec une URL d’Aircall fictive)
+            window.open(`aircall://call?number=${numero}`, '_blank');
+
+            // Afficher la date et l'heure du clic
+            const currentDate = new Date();
+            const formattedDate = currentDate.toLocaleString();
+            document.getElementById("heure_" + index).innerText = formattedDate; // Mettre à jour l'élément de la table avec la date et l'heure
+        }).catch(function(error) {
+            console.error("Erreur de copie :", error);
+        });
+    }
+
+    // Attacher un événement à chaque numéro de téléphone
+    $(document).ready(function() {
+        // Ajouter l'événement au clic sur chaque numéro de téléphone
+        $(".telephone").on("click", function(e) {
+            e.preventDefault(); // Empêcher le lien de se comporter comme un vrai lien
+            const numero = $(this).data("numero");
+            const index = $(this).closest("tr").index() + 1; // Récupérer l'index de la ligne dans le tableau (commence à 1)
+            copierNumeroSurAircall(numero, index);
+        });
+    });
+
+    // Fonction pour mettre à jour le statut avec le rectangle arrondi et transformer le select
+    function mettreAJourStatut(selectElement, index) {
+        const statut = selectElement.value;
+        const statutElement = document.getElementById("statut_" + index);
+        
+        // Appliquer la couleur et le rectangle arrondi en fonction du statut sélectionné
+        if (statut) {
+            statutElement.className = "statut-rectangle " + "statut-" + statut;
+            statutElement.innerText = statut.charAt(0).toUpperCase() + statut.slice(1);
+            selectElement.classList.add("select-small"); // Transformer la liste déroulante en petite flèche
+        } else {
+            statutElement.className = ""; // Enlever le rectangle si aucun statut n'est sélectionné
+            statutElement.innerText = "";
+            selectElement.classList.remove("select-small"); // Réinitialiser le select à son état normal
+        }
+    }
+</script>
+</body>
+
+</html>
